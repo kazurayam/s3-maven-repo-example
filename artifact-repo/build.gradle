@@ -13,23 +13,23 @@ buildscript {
         jcenter()
     }
     dependencies {
-        classpath "jp.classmethod.aws:gradle-aws-plugin:0.31"
+        classpath "jp.classmethod.aws:gradle-aws-plugin:0.41"
     }
 }
 
 plugins {
-    id 'jp.classmethod.aws' version '0.31'
-    id 'jp.classmethod.aws.s3' version '0.31'
+    id 'jp.classmethod.aws' version '0.41'
+    id 'jp.classmethod.aws.s3' version '0.41'
 }
 
 aws {
     profileName = 'default' // Note: change if not using default profile in ~/.aws/credentials
-    region = 'us-west-1'
+    region = 'ap-northeast-1'
 }
 
 task create(type: CreateBucketTask) {
     bucketName "${repoBucketName}"
-    region 'us-west-1'
+    region 'ap-northeast-1'
     ifNotExists true
 }
 
@@ -37,12 +37,12 @@ task setBucketPolicy(type: BucketPolicyTask, dependsOn: create) {
     bucketName "${repoBucketName}"
     policy new Policy().withStatements(
             new Statement(Statement.Effect.Allow)
-                    .withPrincipals(Principal.AllUsers)
-                    .withActions(S3Actions.GetObject)
-                    .withResources(new S3ObjectResource("${repoBucketName}", '*')),
+            .withPrincipals(Principal.AllUsers)
+            .withActions(S3Actions.GetObject)
+            .withResources(new S3ObjectResource("${repoBucketName}", '*')),
             new Statement(Statement.Effect.Allow)
-                    .withPrincipals(Principal.AllUsers)
-                    .withActions(S3Actions.ListObjects)
-                    .withResources(new S3BucketResource("${repoBucketName}"))
+            .withPrincipals(Principal.AllUsers)
+            .withActions(S3Actions.ListObjects)
+            .withResources(new S3BucketResource("${repoBucketName}"))
     )
 }

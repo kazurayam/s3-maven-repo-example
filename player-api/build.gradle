@@ -27,7 +27,7 @@ repositories {
 }
 
 dependencies {
-    compile 'com.fasterxml.jackson.core:jackson-annotations:2.8.4'
+    implementation 'com.fasterxml.jackson.core:jackson-annotations:2.8.4'
 }
 
 publishing {
@@ -47,4 +47,3 @@ publishing {
         }
     }
 }
-
