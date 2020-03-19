@@ -1,3 +1,7 @@
+/**
+ * baseball-service/build.gradle
+ */
+
 import com.amazonaws.auth.profile.ProfileCredentialsProvider
 
 buildscript {
@@ -45,4 +49,15 @@ dependencies {
     implementation group: 'org.springframework.boot', name: 'spring-boot-starter-web', version: '2.2.5.RELEASE'
 
     implementation('com.jacobaseverson.player:player-api:0.0.1')
+}
+
+/**
+ * baseball-serviceプロジェクトのconfiguration.runtime に含まれている
+ * jarファイルを取り出して一時的ディレクトリに置く 
+ *
+ * https://dzone.com/articles/using-gradle-with-aws-and-s3-w-defaultawscredentia
+ */
+task extractRuntimeLibs(type:Copy) {
+    from configurations.runtime 
+    into "$buildDir/tmp/runtime"
 }
