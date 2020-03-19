@@ -6,14 +6,14 @@ buildscript {
         jcenter()
     }
     dependencies {
-        classpath 'org.springframework.boot:spring-boot-gradle-plugin:1.4.2.RELEASE'
+        classpath 'org.springframework.boot:spring-boot-gradle-plugin:2.2.5.RELEASE'
         classpath 'com.amazonaws:aws-java-sdk-core:1.11.745'
     }
 }
 
 plugins {
     id 'java'
-    id 'org.springframework.boot' version '1.4.2.RELEASE'
+    id 'org.springframework.boot' version '2.2.5.RELEASE'
 }
 
 jar {
@@ -41,6 +41,8 @@ dependencies {
     implementation('org.springframework.boot:spring-boot-starter-web') {
         exclude module: "spring-boot-starter-tomcat"
     }
-    implementation('org.springframework.boot:spring-boot-starter-jetty')
+    // https://mvnrepository.com/artifact/org.springframework.boot/spring-boot-starter-web
+    implementation group: 'org.springframework.boot', name: 'spring-boot-starter-web', version: '2.2.5.RELEASE'
+
     implementation('com.jacobaseverson.player:player-api:0.0.1')
 }
