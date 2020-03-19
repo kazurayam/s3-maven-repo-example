@@ -1,4 +1,5 @@
 import com.amazonaws.auth.profile.ProfileCredentialsProvider
+import com.amazonaws.services.s3.model.ObjectMetadata
 
 buildscript {
     repositories {
@@ -12,6 +13,8 @@ buildscript {
 plugins {
     id 'java'
     id 'maven-publish'
+    id 'jp.classmethod.aws' version '0.41'
+    id 'jp.classmethod.aws.s3' version '0.41'
 }
 
 ext {
@@ -19,7 +22,8 @@ ext {
 }
 
 group = 'com.jacobaseverson.player'
-version = '0.0.1'
+jar.archiveBaseName = 'player-api'
+jar.archiveVersion = '0.0.1'
 
 repositories {
     mavenLocal()
@@ -28,6 +32,9 @@ repositories {
 
 dependencies {
     implementation 'com.fasterxml.jackson.core:jackson-annotations:2.8.4'
+
+    // https://mvnrepository.com/artifact/com.amazonaws/aws-lambda-java-core
+    implementation group: 'com.amazonaws', name: 'aws-lambda-java-core', version: '1.2.0'
 }
 
 publishing {
@@ -46,4 +53,18 @@ publishing {
             }
         }
     }
+}
+println "JAR file: ${buildDir}/libs/player-api-0.0.1.jar"
+
+task uploadArtifact(type: jp.classmethod.aws.gradle.s3.AmazonS3FileUploadTask) {
+    bucketName "${artifactsBucketName}"
+    file file("${buildDir}/libs/player-api-0.0.1.jar")
+    key "player-api-0.0.1.jar"
+    def m = new ObjectMetadata()
+    m.setCacheControl("no-cache, no-store")
+    objectMetadata = m
+}
+
+task transferArtifact {
+
 }
