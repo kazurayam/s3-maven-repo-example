@@ -3,17 +3,20 @@
 This repository accompanies a blog post detailing how to set up and use an S3-based Maven repository with Gradle. For more information see [that post](https://medium.com/@JacobASeverson/s3-maven-repositories-and-gradle-911c25cebeeb)
 
 
-# kazurayamによる解説
+# kazurayamによる説明
 
-Java/Groovy/Kotlin言語によるソフトウエア開発プロジェクトの成果物はjarファイルの形をとる。役に立つライブラリのjarファイルをネットワーク上の[Mavenレポジトリ](https://ja.wikipedia.org/wiki/Apache_Maven)に格納して他のプロジェクトで再利用するのが標準的なやり方だ。Mavenレポジトリの実例としては有名な[Maven Central](https://mvnrepository.com/repos/central)レポジトリや[jCenter](https://mvnrepository.com/repos/jcenter)レポジトリがあるが、これらはインターネット上で限定なしに公開されたレポジトリだ。個人や企業が開発したライブラリを内輪に限定して公開したい場合、パブリックなMavenレポジトリを使うわけにはいかない。プライベートなネットワーク上にプライベートなMavenレポジトリを構築し内輪限りで利用したくなる。プライベートなMavenレポジトリを構築するのには[Artifactory]()というプロダクトがある。だがArtifactoryはjCenterに対抗しようという魂胆があるのか、けっこう複雑なソフトウェアであって学習コストがかかる。わたしとしてはもっとシンプルな方法で自分専用のMavenレポジトリを構築する方法はないものか？と考えてググったら、AWS S3のバケットを使ってプライベートなMavenレポジトリを作ったよ的な記事がいくつもあった。
+## 解決すべき問題
 
-それらの記事はたいていビルドツール[Gradle](https://gradle.org/)に[Maven Publish plugin](https://docs.gradle.org/current/userguide/publishing_maven.html)を組み込んで、AWS S3バケットをMavenレポジトリとして使うという方法をとっていた。この方法があるから少しも難しくはない。しかしひとつ問題があった。パソコン上で動くプログラムがS3バケットを読み書きするには必ずやAWSの流儀に従って認証と認可のプロセスをPASSしなければならない。AWS CLIをインストールしてconfig操作をすると `~/.aws/credentials` というファイルのができるのだが、その中に プロファイル名とその属性 `aws_access_key_id` と `aws_secret_access_key` が書かれる。アプリケーションプログラムのソースコードの中に プロファイル名 (例えば default)がハードコードされても構わない。しかしプロファイルが持つ２つの属性の値をプログラムのソースコードの中に転記しハードコードすることは絶対に避けるべきだ。プログラムのソースコードがGitレポジトリにpushされた時に認証情報がダダ漏れになってしまうから。わたしが読んだ記事の多くは認証情報をプログラムの一部としてハードコードしなさいと書いていた。そりゃダメなんじゃないのとわたしは思った。
+Java/Groovy/Kotlin言語によるソフトウエア開発プロジェクトの成果物はjarファイルの形をとる。役に立つライブラリのjarファイルをネットワーク上の[Mavenレポジトリ](https://ja.wikipedia.org/wiki/Apache_Maven)に格納して他のプロジェクトで再利用するのが標準的なやり方だ。Mavenレポジトリの実例としては有名な[Maven Central](https://mvnrepository.com/repos/central)レポジトリや[jCenter](https://mvnrepository.com/repos/jcenter)レポジトリがあるが、これらはインターネット上で限定なしに公開されたレポジトリだ。個人や企業が開発したライブラリを内輪に限定して公開したい場合、パブリックなMavenレポジトリを使うわけにはいかない。プライベートなネットワーク上にプライベートなMavenレポジトリを構築し内輪限りで利用したくなる。プライベートなMavenレポジトリを構築するのには[Artifactory]()というプロダクトがある。だがArtifactoryはjCenterに対抗しようという魂胆があるのか、けっこう複雑なソフトウェアであって学習コストがかかる。わたしとしてはもっとシンプルな方法で自分専用のMavenレポジトリを構築する方法はないものか？と考えてググったら、 **AWS S3のバケットを使ってプライベートなMavenレポジトリを作ったよ的な記事がいくつもあった**。
+
+それらの記事はたいていビルドツール[Gradle](https://gradle.org/)に[Maven Publish plugin](https://docs.gradle.org/current/userguide/publishing_maven.html)を組み込んで、AWS S3バケットをMavenレポジトリとして使うという方法をとっていた。この方法があるから少しも難しくはない。しかしひとつ問題があった。パソコン上で動くプログラムがS3バケットを読み書きするには必ずやAWSの流儀に従って認証と認可のプロセスをPASSしなければならない。AWS CLIをインストールしてconfig操作をすると `~/.aws/credentials` というファイルのができるのだが、その中に プロファイル名とその属性 `aws_access_key_id` と `aws_secret_access_key` が書かれる。アプリケーションプログラムのソースコードの中に プロファイル名 (例えば default)がハードコードされても構わない。しかしプロファイルが持つ２つの属性の値をプログラムのソースコードの中に転記しハードコードすることは絶対に避けるべきだ。プログラムのソースコードがGitレポジトリにpushされた時に認証情報がダダ漏れになってしまうから。わたしが読んだ* **記事の多くは認証情報をプログラムの一部としてハードコードしなさいと書いていた。そりゃダメなんじゃないの** とわたしは思った。
+
+## 解決方法
 
 そんななかで[この記事](https://medium.com/@JacobASeverson/s3-maven-repositories-and-gradle-911c25cebeeb)は認証情報を転記するのではなく、Gradleのbuild.gradleが（つまりGroovyスクリプトが） `com.amazonaws.auth.profile.ProfileCredentialsProvider` クラスを呼び出すことにより、 `~/.aws/credential` ファイルの内容を間接的に参照する方法を示してくれていた。`aws_access_key_id` と `aws_secret_access_key`に設定すべき値をアプリケーションのソースコードに転記することなしにS3バケットへアクセスするための認証・認可のプロセスをPASSする方法を明示してくれていた。いいですねえ、これ。この方法を使わせてもらいましょう。
-
 というわけでやって見た。
 
-オリジナルの記事には無かった企みをひとつ追加した。自作したJavaコードをAWS Lambdaで実行したかった。JavaコードをjarファイルにしてそれをS3バケットに配置してやる必要があった。どうすればいい？　ーーー　この問題の解決策もここに示すことができた。
+オリジナルの記事には無かった企みを追加した。自作したJavaコードをAWS Lambdaでラムダ関数として実行したかった。そのためにはJavaコードをjarファイルにしてそれをS3バケットに配置してやる必要があった。どうすればいい？　ーーー　この問題の解決策もここに示すことができた。
 
 # 環境条件
 
@@ -31,10 +34,9 @@ Java/Groovy/Kotlin言語によるソフトウエア開発プロジェクトの�
 - `player-api` : このプロジェクトはjarファイルを作り、S3バケット上のMavenレポジトリにjarファイルを格納する。
 - `baseball-service` : このプロジェクトはWebサーバアプリを作る。player-apiプロジェクトによって作られMavenレポジトリにpublishされたjarを部品として利用する。
 
-Jacov Seversonが書いた記事が説明しているプロジェクトは以上３つのサブプロジェクト出会った。
+オリジナルのプロジェクトは以上３つのサブプロジェクトを持っていた。
 
-わたしは `s3-maven-repo-example`プロジェクトを少しだけ広げた。 
-player-apiプロジェクトが開発したJavaライブラリを変更し改修して、AWSでLambda関数として実行できるものに改めた。player-apiをLambdaとして実行するにはjarファイルをS3バケットに配置して、LamdaのランタイムがS3バケットからjarをロードできるようにすることが必要だ。このS3バケットを **artifactsバケット** と呼ぶことにした。わたしはひとつサブプロジェクトを追加した。
+わたしは `s3-maven-repo-example`プロジェクトを少しだけ拡張した。player-apiプロジェクトが開発したJavaライブラリを変更し改修して、AWSでLambda関数として実行できるものに改めた。player-apiをLambdaとして実行するにはjarファイルをS3バケットに配置して、LamdaのランタイムがS3バケットからjarをロードできるようにすることが必要だ。このS3バケットを **artifactsバケット** と呼ぶことにした。わたしはひとつサブプロジェクトを追加した。
 
 - `artifacts-bucket` : このプロジェクトはartifactsバケットとなるべきS3バケットを作る。
 
@@ -120,4 +122,17 @@ $ gradle :baseball-server:transferArtifact
 # 結語
 
 以上でartifactsバケットにjarを配置することができた。このjarをAWS Lambda関数として実行することができるはずだが、それはまた別の話。
+
+
+# 謝意
+
+Jacob A Serversonによるオリジナルの記事 [that post](https://medium.com/@JacobASeverson/s3-maven-repositories-and-gradle-911c25cebeeb)は 
+GradleスクリプトがAWS S3バケットを読み書きするために
+
+- [classmethod/Gradle AWS plugin](https://plugins.gradle.org/plugin/jp.classmethod.aws.s3)
+
+を使っていた。わたしもこの便利なGradleプラグインを今後も使わせてもらいます。
+
+このプラグインの作者である都元ダイスケさんが亡くなったという[訃報](https://classmethod.jp/news/farewell-miyamoto/)に接しました。悲しいです。ご冥福をお祈りします。
+
 
