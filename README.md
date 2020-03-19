@@ -7,7 +7,13 @@ This repository accompanies a blog post detailing how to set up and use an S3-ba
 
 Java/Groovy/Kotlin言語によるソフトウエア開発プロジェクトの成果物はjarファイルの形をとる。役に立つライブラリのjarファイルをネットワーク上の[Mavenレポジトリ](https://ja.wikipedia.org/wiki/Apache_Maven)に格納して他のプロジェクトで再利用するのが標準的なやり方だ。Mavenレポジトリの実例としては有名な[Maven Central](https://mvnrepository.com/repos/central)レポジトリや[jCenter](https://mvnrepository.com/repos/jcenter)レポジトリがあるが、これらはインターネット上で限定なしに公開されたレポジトリだ。個人や企業が開発したライブラリを内輪に限定して公開したい場合、パブリックなMavenレポジトリを使うわけにはいかない。プライベートなネットワーク上にプライベートなMavenレポジトリを構築し内輪限りで利用したくなる。プライベートなMavenレポジトリを構築するのには[Artifactory]()というプロダクトがある。だがArtifactoryはjCenterに対抗しようという魂胆があるのか、けっこう複雑なソフトウェアであって学習コストがかかる。わたしとしてはもっとシンプルな方法で自分専用のMavenレポジトリを構築する方法はないものか？と考えてググったら、AWS S3のバケットを使ってプライベートなMavenレポジトリを作ったよ的な記事がいくつもあった。
 
-それらの記事はたいていビルドツール[Gradle](https://gradle.org/)に[Maven Publish plugin](https://docs.gradle.org/current/userguide/publishing_maven.html)を組み込んで、AWS S3バケットをMavenレポジトリとして使うという方法をとっていた。この方法があるから少しも難しくはない。しかしひとつ問題があった。パソコン上で動くプログラムがS3バケットを読み書きするには必ずやAWSの流儀に従って認証と認可のプロセスをPASSしなければならない。AWS CLIをインストールしてconfig操作をすると `~/.aws/credentials` というファイルのができるのだが、その中に プロファイル名とその属性 `aws_access_key_id` と `aws_secret_access_key` が書かれる。アプリケーションプログラムのソースコードの中に プロファイル名 (例えば default)がハードコードされても構わない。しかしプロファイルが持つ２つの属性の値をプログラムのソースコードの中に転記しハードコードすることは絶対に避けるべきだ。プログラムのソースコードがGitレポジトリにpushされた時に認証情報がダダ漏れになってしまうから。わたしが読んだ記事の多くは認証情報をプログラムの一部としてハードコードしなさいと書いていた。そりゃダメなんじゃないのとわたしは思った。そんななか[この記事](https://medium.com/@JacobASeverson/s3-maven-repositories-and-gradle-911c25cebeeb)は認証情報を転記するのではなく、Gradleのbuild.gradleに書かれたGroovyスクリプトが `~/.aws/credential` ファイルを参照することでS3バケットへアクセスするための認証・認可のプロセスをPASSする方法を明示してくれていた。いいじゃん、これ。この方法を使わせてもらいましょう。
+それらの記事はたいていビルドツール[Gradle](https://gradle.org/)に[Maven Publish plugin](https://docs.gradle.org/current/userguide/publishing_maven.html)を組み込んで、AWS S3バケットをMavenレポジトリとして使うという方法をとっていた。この方法があるから少しも難しくはない。しかしひとつ問題があった。パソコン上で動くプログラムがS3バケットを読み書きするには必ずやAWSの流儀に従って認証と認可のプロセスをPASSしなければならない。AWS CLIをインストールしてconfig操作をすると `~/.aws/credentials` というファイルのができるのだが、その中に プロファイル名とその属性 `aws_access_key_id` と `aws_secret_access_key` が書かれる。アプリケーションプログラムのソースコードの中に プロファイル名 (例えば default)がハードコードされても構わない。しかしプロファイルが持つ２つの属性の値をプログラムのソースコードの中に転記しハードコードすることは絶対に避けるべきだ。プログラムのソースコードがGitレポジトリにpushされた時に認証情報がダダ漏れになってしまうから。わたしが読んだ記事の多くは認証情報をプログラムの一部としてハードコードしなさいと書いていた。そりゃダメなんじゃないのとわたしは思った。
+
+そんななかで[この記事](https://medium.com/@JacobASeverson/s3-maven-repositories-and-gradle-911c25cebeeb)は認証情報を転記するのではなく、Gradleのbuild.gradleが（つまりGroovyスクリプトが） `com.amazonaws.auth.profile.ProfileCredentialsProvider` クラスを呼び出すことにより、 `~/.aws/credential` ファイルの内容を間接的に参照する方法を示してくれていた。`aws_access_key_id` と `aws_secret_access_key`に設定すべき値をアプリケーションのソースコードに転記することなしにS3バケットへアクセスするための認証・認可のプロセスをPASSする方法を明示してくれていた。いいですねえ、これ。この方法を使わせてもらいましょう。
+
+というわけでやって見た。
+
+オリジナルの記事には無かった企みをひとつ追加した。自作したJavaコードをAWS Lambdaで実行したかった。JavaコードをjarファイルにしてそれをS3バケットに配置してやる必要があった。どうすればいい？　ーーー　この問題の解決策もここに示すことができた。
 
 # 環境条件
 
