@@ -88,13 +88,18 @@ $ ./gradlew :baseball-service:build
 $ java -jar baseball-service/build/libs/baseball-service.jar
 ```
 
-Webサーバアプリが立ち上がる。ブラウザで `http://localhost:8080/players` にアクセスせよ。するとこういう応答がある。
+これでTomcatが立ち上がる。ブラウザで `http://localhost:8080/players` にアクセスせよ。すると下記のようなJSONテキストが応答される。
 
 ```
-
+[{"firstName":"Byron","lastName":"Buxton"},{"firstName":"Max","lastName":"Kepler"}]
 ```
+
+player-apiプロジェクトとbaseball-serviceプロジェクトの成果物がちゃんと動いていることが立証された。
+
 
 ## artifactsバケットを作る
+
+AWS Lambdaで player-api をLambda関数として動かすことを念頭に、S3バケットを作ろう。
 
 ```
 $ gradle :artifacts-bucket:create
@@ -114,6 +119,9 @@ $ gradle :player-api:uploadArtifact
 ```
 
 ## 別解　baseball-serverプロジェクトがローカルに取り込み済みのjarをartifactsバケットへ転送する
+
+:baseball-serviceプロジェクトはplayer-apiのjarファイルをMavenレポジトリからダウンロードしてローカルにコピーを持っている。
+そのjarをartifactsバケットへ送り込むこともできる。
 
 ```
 $ gradle :baseball-server:transferArtifact
