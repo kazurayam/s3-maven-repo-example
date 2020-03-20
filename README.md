@@ -144,3 +144,32 @@ GradleスクリプトがAWS S3バケットを読み書きするために
 このプラグインの作者である都元ダイスケさんが亡くなったという[訃報](https://classmethod.jp/news/farewell-miyamoto/)に接しました。悲しいです。ご冥福をお祈りします。
 
 
+# 課題
+
+## Classmethod Gradle AWS pluginに対して警告メッセージが出力される
+
+下記のようなメッセージが表示される。
+
+```
+~/github/s3-maven-repo-example [develop ≡ +0 ~4 -0 | +0 ~1 -0 !]> gradle :baseball-service:transferArtifact --warning-mode all
+
+> Task :baseball-service:transferArtifact
+Property 'bucketName' is not annotated with an input or output annotation. This behaviour has been deprecated and is scheduled to be removed in Gradle 7.0.
+Property 'file' is not annotated with an input or output annotation. This behaviour has been deprecated and is scheduled to be removed in Gradle 7.0.
+Property 'key' is not annotated with an input or output annotation. This behaviour has been deprecated and is scheduled to be removed in Gradle 7.0.
+Property 'kmsKeyId' is not annotated with an input or output annotation. This behaviour has been deprecated and is scheduled to be removed in Gradle 7.0.
+Property 'objectMetadata' is not annotated with an input or output annotation. This behaviour has been deprecated and is scheduled to be removed in Gradle 7.0.
+Property 'resourceUrl' is not annotated with an input or output annotation. This behaviour has been deprecated and is scheduled to be removed in Gradle 7.0.
+Property 'overwrite' is not annotated with an input or output annotation. This behaviour has been deprecated and is scheduled to be removed in Gradle 7.0.
+
+BUILD SUCCESSFUL in 988ms
+```
+
+このままではClassmethod Gradle AWS pluginがGradle 7.0で動作しなくなってしまう見込みだ。pluginを開発するプロジェクトのIssueリストにすでに課題が挙げられている。
+
+- https://github.com/classmethod/gradle-aws-plugin/issues/187
+
+もはや都元さんはいないのだから、誰かが代わりにやらなければならない。
+
+
+
