@@ -8,6 +8,9 @@ import com.amazonaws.auth.policy.resources.S3ObjectResource
 import jp.classmethod.aws.gradle.s3.CreateBucketTask
 import jp.classmethod.aws.gradle.s3.BucketPolicyTask
 
+/**
+ * artifacts-bucket/build.gradle
+ */
 buildscript {
     repositories {
         jcenter()

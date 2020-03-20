@@ -1,8 +1,9 @@
+import com.amazonaws.auth.profile.ProfileCredentialsProvider
+import com.amazonaws.services.s3.model.ObjectMetadata
+
 /**
  * baseball-service/build.gradle
  */
-
-import com.amazonaws.auth.profile.ProfileCredentialsProvider
 
 buildscript {
     repositories {
@@ -18,6 +19,8 @@ buildscript {
 plugins {
     id 'java'
     id 'org.springframework.boot' version '2.2.5.RELEASE'
+    id 'jp.classmethod.aws' version '0.41'
+    id 'jp.classmethod.aws.s3' version '0.41'
 }
 
 jar {
@@ -53,11 +56,22 @@ dependencies {
 
 /**
  * baseball-serviceプロジェクトのconfiguration.runtime に含まれている
- * jarファイルを取り出して一時的ディレクトリに置く 
+ * jarファイルを取り出して一時的ディレクトリに置く。
+ * player-api-x.x.x.jarだけでなくspringやtomcatのjarも一緒に一時的ディレクトリに出力される。 
  *
  * https://dzone.com/articles/using-gradle-with-aws-and-s3-w-defaultawscredentia
  */
 task extractRuntimeLibs(type:Copy) {
-    from configurations.runtime 
-    into "$buildDir/tmp/runtime"
+    from configurations.runtimeClasspath
+    into "$buildDir/tmp/runtimeClasspath"
 }
+
+task transferArtifact(type: jp.classmethod.aws.gradle.s3.AmazonS3FileUploadTask) {
+    bucketName "${artifactsBucketName}"
+    file file("${buildDir}/tmp/runtimeClasspath/player-api-0.0.1.jar")
+    key "player-api-0.0.1.jar"
+    def m = new ObjectMetadata()
+    m.setCacheControl("no-cache, no-store")
+    objectMetadata = m
+}
+transferArtifact.dependsOn extractRuntimeLibs

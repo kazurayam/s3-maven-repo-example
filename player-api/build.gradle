@@ -1,6 +1,9 @@
 import com.amazonaws.auth.profile.ProfileCredentialsProvider
 import com.amazonaws.services.s3.model.ObjectMetadata
 
+/**
+ * player-api/build.gradle
+ */
 buildscript {
     repositories {
         jcenter()
@@ -54,7 +57,6 @@ publishing {
         }
     }
 }
-println "JAR file: ${buildDir}/libs/player-api-0.0.1.jar"
 
 task uploadArtifact(type: jp.classmethod.aws.gradle.s3.AmazonS3FileUploadTask) {
     bucketName "${artifactsBucketName}"
